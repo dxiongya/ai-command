@@ -41,7 +41,22 @@ Notes:
   state file).
 - Use the "Link" field to store a deep link or URL that opens your editor.
 
-6. Auto Copy
+6. Cursor Auto Tracking
+```
+// Track from Cursor logs (best effort)
+aim cursor-track --log ~/.config/Cursor/logs/<latest>/main.log --editor "my-workspace" --link "cursor://"
+```
+
+If --log is omitted, it scans for the latest *.log under:
+- Linux: ~/.config/Cursor/logs
+- macOS: ~/Library/Application Support/Cursor/logs
+- Windows: %APPDATA%/Cursor/logs
+
+Tips:
+- Auto tracking is heuristic. Use --print to see matched events.
+- Use --note-from-log to store a short log snippet in the note field.
+
+7. Auto Copy
 ```
 default open copy to clipboard, if you want to disable it, use --no-copy or global disbaled: aim set auto_copy off
 ```
