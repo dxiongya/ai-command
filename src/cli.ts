@@ -24,6 +24,16 @@ export async function main() {
     })
 
   cli
+    .command('cursor', 'Start Cursor chat dashboard')
+    .option('--port <port>', 'Port for dashboard (default: 7337)')
+    .option('--host <host>', 'Host for dashboard (default: 127.0.0.1)')
+    .option('--open', 'Open dashboard in browser')
+    .action(async (flags) => {
+      const { startCursorDashboard } = await import('./cursor/dashboard')
+      startCursorDashboard(flags);
+    })
+
+  cli
     .command("set <key> <value>", "Set config")
     .action(async (key: string, value: string) => {
       const { set } = await import('./config')
