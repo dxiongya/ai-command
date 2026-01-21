@@ -1,27 +1,8 @@
 import http from 'http';
-import os from 'os';
-import path from 'path';
-import fs from 'fs';
 import { exec } from 'child_process';
 import { URL } from 'url';
 import { error, success, warn } from '../utils/log';
-
-type DashboardStatus = 'pending' | 'running' | 'success' | 'failed';
-
-type DashboardItem = {
-  id: string;
-  title: string;
-  editor: string;
-  status: DashboardStatus;
-  link?: string;
-  note?: string;
-  updatedAt: string;
-};
-
-type DashboardState = {
-  updatedAt: string;
-  items: DashboardItem[];
-};
+import { deleteItem, readState, upsertItem, writeState, STATE_PATH } from './state';
 
 type DashboardFlags = {
   port?: string | number;
@@ -31,8 +12,6 @@ type DashboardFlags = {
 
 const DEFAULT_PORT = 7337;
 const DEFAULT_HOST = '127.0.0.1';
-const DATA_DIR = path.join(os.homedir(), '.ai-command');
-const STATE_PATH = path.join(DATA_DIR, 'cursor-dashboard.json');
 const MAX_BODY_BYTES = 1024 * 1024;
 
 const HTML = `<!doctype html>
@@ -390,104 +369,6 @@ const HTML = `<!doctype html>
   </body>
 </html>`;
 
-const defaultState = (): DashboardState => ({
-  updatedAt: new Date().toISOString(),
-  items: [],
-});
-
-const ensureStateFile = () => {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(STATE_PATH)) {
-    fs.writeFileSync(STATE_PATH, JSON.stringify(defaultState(), null, 2));
-  }
-};
-
-const readState = (): DashboardState => {
-  ensureStateFile();
-  try {
-    const raw = fs.readFileSync(STATE_PATH, 'utf-8');
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.items)) {
-      throw new Error('Invalid state format');
-    }
-    return parsed;
-  } catch (err) {
-    const backupPath = `${STATE_PATH}.bak-${Date.now()}`;
-    try {
-      fs.renameSync(STATE_PATH, backupPath);
-      warn(`State file was invalid. Backed up to ${backupPath}`);
-    } catch (backupError) {
-      warn('Failed to backup invalid state file.');
-    }
-    const state = defaultState();
-    writeState(state);
-    return state;
-  }
-};
-
-const writeState = (state: DashboardState) => {
-  ensureStateFile();
-  fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
-};
-
-const createId = () =>
-  `item_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-const normalizeStatus = (
-  status: unknown,
-  fallback: DashboardStatus
-): DashboardStatus => {
-  const allowed: DashboardStatus[] = ['pending', 'running', 'success', 'failed'];
-  if (typeof status === 'string' && allowed.includes(status as DashboardStatus)) {
-    return status as DashboardStatus;
-  }
-  return fallback;
-};
-
-const upsertItem = (state: DashboardState, input: Partial<DashboardItem>) => {
-  const now = new Date().toISOString();
-  const existingIndex = input.id
-    ? state.items.findIndex((item) => item.id === input.id)
-    : -1;
-  const base =
-    existingIndex >= 0
-      ? state.items[existingIndex]
-      : {
-          id: input.id || createId(),
-          title: '',
-          editor: '',
-          status: 'pending' as DashboardStatus,
-          link: '',
-          note: '',
-          updatedAt: now,
-        };
-
-  const next: DashboardItem = {
-    id: base.id,
-    title: String(input.title ?? base.title ?? '').trim(),
-    editor: String(input.editor ?? base.editor ?? '').trim(),
-    status: normalizeStatus(input.status, base.status),
-    link: String(input.link ?? base.link ?? '').trim(),
-    note: String(input.note ?? base.note ?? '').trim(),
-    updatedAt: now,
-  };
-
-  if (!next.title || !next.editor) {
-    throw new Error('title and editor are required');
-  }
-
-  if (existingIndex >= 0) {
-    state.items[existingIndex] = next;
-  } else {
-    state.items.push(next);
-  }
-};
-
-const deleteItem = (state: DashboardState, id: string) => {
-  state.items = state.items.filter((item) => item.id !== id);
-};
 
 const readBody = async (req: http.IncomingMessage): Promise<string> => {
   return new Promise((resolve, reject) => {
