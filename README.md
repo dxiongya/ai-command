@@ -29,7 +29,19 @@ lsof -i:3000 | kill -9 {PID}
 aim chat
 ```
 
-4. Auto Copy
+5. Cursor Dashboard
+```
+// Start local dashboard
+aim cursor --port 7337 --open
+```
+
+Notes:
+- Cursor does not expose a public API for chat status. The dashboard stores data
+  locally and requires manual updates (or your own automation writing to the
+  state file).
+- Use the "Link" field to store a deep link or URL that opens your editor.
+
+6. Auto Copy
 ```
 default open copy to clipboard, if you want to disable it, use --no-copy or global disbaled: aim set auto_copy off
 ```
