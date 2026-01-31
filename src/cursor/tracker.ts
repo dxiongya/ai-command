@@ -391,30 +391,39 @@ export const startCursorTracker = (flags: TrackerFlags = {}) => {
     }
 
     const state = readState();
-    const editor = (event.editor || defaultEditor || DEFAULT_EDITOR).trim();
-    const title = (event.title || defaultTitle || DEFAULT_TITLE).trim();
+    const rawEditor = (event.editor || '').trim();
+    const rawTitle = (event.title || '').trim();
+    const editorForMatch = (rawEditor || defaultEditor || DEFAULT_EDITOR).trim();
+    const titleForMatch = (rawTitle || defaultTitle || DEFAULT_TITLE).trim();
 
     let resolvedId = event.id ? `cursor_${event.id}` : undefined;
     if (!resolvedId && event.status !== 'running') {
-      const lastActive = lastActiveByEditor.get(editor);
+      const lastActive = lastActiveByEditor.get(editorForMatch);
       if (lastActive) {
         resolvedId = lastActive;
       }
     }
     if (!resolvedId) {
       const runningMatch = state.items.find(
-        (item) => item.editor === editor && item.title === title && item.status === 'running'
+        (item) =>
+          item.editor === editorForMatch &&
+          item.title === titleForMatch &&
+          item.status === 'running'
       );
       if (runningMatch) {
         resolvedId = runningMatch.id;
       }
     }
     if (!resolvedId) {
-      const seed = `${editor}|${title}`;
+      const seed = `${editorForMatch}|${titleForMatch}`;
       resolvedId = createStableId(seed);
     }
 
     const existing = getItemById(state, resolvedId);
+    const editorForUpsert =
+      rawEditor || existing?.editor || editorForMatch || DEFAULT_EDITOR;
+    const titleForUpsert =
+      rawTitle || existing?.title || titleForMatch || DEFAULT_TITLE;
     const note =
       event.note !== undefined
         ? String(event.note)
@@ -424,8 +433,8 @@ export const startCursorTracker = (flags: TrackerFlags = {}) => {
 
     const next = upsertItem(state, {
       id: resolvedId,
-      title: title || existing?.title || DEFAULT_TITLE,
-      editor: editor || existing?.editor || DEFAULT_EDITOR,
+      title: titleForUpsert,
+      editor: editorForUpsert,
       status: event.status,
       link: (event.link || flags.link || existing?.link || '').trim(),
       note,
