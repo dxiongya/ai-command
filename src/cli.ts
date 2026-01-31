@@ -24,6 +24,33 @@ export async function main() {
     })
 
   cli
+    .command('cursor', 'Start Cursor chat dashboard')
+    .option('--port <port>', 'Port for dashboard (default: 7337)')
+    .option('--host <host>', 'Host for dashboard (default: 127.0.0.1)')
+    .option('--open', 'Open dashboard in browser')
+    .action(async (flags) => {
+      const { startCursorDashboard } = await import('./cursor/dashboard')
+      startCursorDashboard(flags);
+    })
+
+  cli
+    .command('cursor-track', 'Auto track Cursor chat status')
+    .option('--log <path>', 'Cursor log file path')
+    .option('--log-dir <path>', 'Cursor logs directory')
+    .option('--cursor-root <path>', 'Cursor config root directory')
+    .option('--editor <name>', 'Default editor name')
+    .option('--title <title>', 'Default title')
+    .option('--link <link>', 'Default link')
+    .option('--from-start', 'Parse existing log content before watching')
+    .option('--once', 'Process log content once and exit')
+    .option('--note-from-log', 'Use log line snippet as note')
+    .option('--print', 'Print matched events')
+    .action(async (flags) => {
+      const { startCursorTracker } = await import('./cursor/tracker')
+      startCursorTracker(flags);
+    })
+
+  cli
     .command("set <key> <value>", "Set config")
     .action(async (key: string, value: string) => {
       const { set } = await import('./config')
